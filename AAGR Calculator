@@ -1,0 +1,168 @@
+import React, { useState } from 'react';
+import { Calculator } from 'lucide-react';
+
+export default function AAGRCalculator() {
+  const [calculations, setCalculations] = useState({});
+  
+  const calculateAAGR = (startValue, endValue, years) => {
+    if (!startValue || !endValue || !years || years <= 0) return null;
+    const start = parseFloat(startValue);
+    const end = parseFloat(endValue);
+    const numYears = parseFloat(years);
+    
+    const aagr = (Math.pow(end / start, 1 / numYears) - 1) * 100;
+    return aagr.toFixed(2);
+  };
+
+  const periods = [
+    {
+      id: 'obama',
+      name: '2011-2017 (Obama post-recession)',
+      startYear: 2011,
+      endYear: 2017,
+      years: 6
+    },
+    {
+      id: 'pre_no_recession',
+      name: '1997-2014 (excl. 2008-2009)',
+      startYear: 1997,
+      endYear: 2014,
+      years: 16,
+      note: 'Exclude 2008-2009 data'
+    },
+    {
+      id: 'post_no_covid',
+      name: '2015-2023 (excl. 2020)',
+      startYear: 2015,
+      endYear: 2023,
+      years: 8,
+      note: 'Exclude 2020 data'
+    }
+  ];
+
+  const variables = [
+    { id: 'co2', name: 'CO₂ Emissions', unit: 'Mt' },
+    { id: 'pop', name: 'Population', unit: 'millions' },
+    { id: 'gdp', name: 'GDP per capita', unit: 'constant USD' },
+    { id: 'intensity', name: 'Carbon Intensity', unit: 'CO₂/GDP', calculated: true }
+  ];
+
+  const handleInputChange = (periodId, varId, field, value) => {
+    setCalculations(prev => ({
+      ...prev,
+      [`${periodId}_${varId}_${field}`]: value
+    }));
+  };
+
+  const getAAGR = (periodId, varId) => {
+    const startValue = calculations[`${periodId}_${varId}_start`];
+    const endValue = calculations[`${periodId}_${varId}_end`];
+    const period = periods.find(p => p.id === periodId);
+    
+    if (startValue && endValue && period) {
+      return calculateAAGR(startValue, endValue, period.years);
+    }
+    return null;
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="bg-white rounded-lg shadow-xl p-6 mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Calculator className="w-8 h-8 text-indigo-600" />
+            <h1 className="text-3xl font-bold text-gray-800">AAGR Calculator</h1>
+          </div>
+          <p className="text-gray-600 mb-2">
+            Calculate Average Annual Growth Rates for your US GHG Commentary table
+          </p>
+          <div className="bg-blue-50 border border-blue-200 rounded p-4 mt-4">
+            <p className="text-sm text-blue-900 font-semibold mb-2">📝 Instructions:</p>
+            <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+              <li>For each period, enter the START and END values from your World Bank data</li>
+              <li>For periods excluding recessions, calculate averages manually or use adjusted endpoints</li>
+              <li>Carbon Intensity = CO₂ / GDP (calculate this separately if needed)</li>
+              <li>The AAGR will calculate automatically</li>
+            </ol>
+          </div>
+        </div>
+
+        {periods.map(period => (
+          <div key={period.id} className="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 className="text-xl font-bold text-indigo-700 mb-2">{period.name}</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Years: {period.startYear} to {period.endYear} ({period.years} years)
+              {period.note && <span className="text-orange-600 font-semibold"> - {period.note}</span>}
+            </p>
+            
+            <div className="grid gap-4">
+              {variables.map(variable => (
+                <div key={variable.id} className="border border-gray-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-700 mb-3">
+                    {variable.name} {variable.calculated && <span className="text-xs text-orange-600">(Calculate: CO₂/GDP)</span>}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">
+                        {period.startYear} Value ({variable.unit})
+                      </label>
+                      <input
+                        type="number"
+                        step="any"
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Enter start value"
+                        value={calculations[`${period.id}_${variable.id}_start`] || ''}
+                        onChange={(e) => handleInputChange(period.id, variable.id, 'start', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">
+                        {period.endYear} Value ({variable.unit})
+                      </label>
+                      <input
+                        type="number"
+                        step="any"
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Enter end value"
+                        value={calculations[`${period.id}_${variable.id}_end`] || ''}
+                        onChange={(e) => handleInputChange(period.id, variable.id, 'end', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">
+                        AAGR (%)
+                      </label>
+                      <div className="w-full px-3 py-2 bg-green-50 border-2 border-green-500 rounded font-bold text-lg text-green-700">
+                        {getAAGR(period.id, variable.id) || '--'}%
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        <div className="bg-amber-50 border-2 border-amber-400 rounded-lg p-6">
+          <h3 className="font-bold text-amber-900 mb-3">⚠️ Important Notes:</h3>
+          <ul className="space-y-2 text-sm text-amber-800">
+            <li><strong>Carbon Intensity:</strong> You need to calculate this first: CO₂ ÷ GDP for each year</li>
+            <li><strong>Excluding recession years:</strong> For 1997-2014 excluding 2008-2009, you can either:
+              <ul className="ml-6 mt-1 list-disc">
+                <li>Calculate AAGR from 1997-2007, then 2010-2014 separately and average them</li>
+                <li>Or use regression/interpolation to estimate what values would have been without recession</li>
+              </ul>
+            </li>
+            <li><strong>Data sources:</strong> World Bank - search for:
+              <ul className="ml-6 mt-1 list-disc">
+                <li>Total population (SP.POP.TOTL)</li>
+                <li>GDP per capita, constant (NY.GDP.PCAP.KN)</li>
+                <li>CO₂ emissions (EN.ATM.CO2E.KT or use Mt from EIA/Our World in Data)</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
